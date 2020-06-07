@@ -34,3 +34,8 @@ export function validateVCode(value) {
     let reg = /^[a-z0-9]{6}$/;
     return !reg.test(value) ? true : false;
 }
+
+/**
+ * 没有使用export default时，可以同时声明多个 export function
+ * 文件 import 时，需要花括号
+ */

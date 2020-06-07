@@ -11,32 +11,32 @@
             </ul>
             <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" size="medium" class="login-form">
                 <el-form-item prop="username" class="item-form">
-                    <label for="username">邮箱</label>
-                    <el-input id="username" type="text" v-model="ruleForm.username" autocomplete="off"></el-input>
+                    <label>邮箱</label>
+                    <el-input type="text" v-model="ruleForm.username" autocomplete="off"></el-input>
                 </el-form-item>
                 <el-form-item prop="password" class="item-form">
-                    <label for="password">密码</label>
-                    <el-input id="password" type="password" v-model="ruleForm.password" autocomplete="off" minlength="6" maxlength="20"></el-input>
+                    <label>密码</label>
+                    <el-input type="password" v-model="ruleForm.password" autocomplete="off" minlength="6" maxlength="20"></el-input>
                 </el-form-item>
                 <el-form-item prop="passwords" class="item-form" v-if="model === 'register'">
-                    <label for="passwords">重复密码</label>
-                    <el-input id="passwords" type="password" v-model="ruleForm.passwords" autocomplete="off" minlength="6" maxlength="20"></el-input>
+                    <label>重复密码</label>
+                    <el-input type="password" v-model="ruleForm.passwords" autocomplete="off" minlength="6" maxlength="20"></el-input>
                 </el-form-item>
                 <el-form-item prop="code" class="item-form">
-                    <label for="code">验证码</label>
+                    <label>验证码</label>
                     <el-row :gutter="10">
                         <el-col :span="15">
-                            <el-input id="code" v-model="ruleForm.code" minlength="6" maxlength="6"></el-input>
+                            <el-input v-model="ruleForm.code" minlength="6" maxlength="6"></el-input>
                         </el-col>
                         <el-col :span="9">
-                            <el-button type="success" class="block" @click="getSms()">获取验证码</el-button>
+                            <el-button type="success" class="block">获取验证码</el-button>
                         </el-col>
                     </el-row>
                     
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="danger" @click="submitForm('ruleForm')" class="login-btn block" :disabled="loginButtonStatus">
-                        {{ model === 'login' ? '登录' : '注册' }}
+                    <el-button type="danger" @click="submitForm('ruleForm')" class="login-btn block">
+                        {{ this.model === 'login' ? '登录' : '注册' }}
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -47,11 +47,10 @@
 <script>
 import { stripscript, validateEmail, validatePass, validateVCode } from '@/utils/validate';
 import { reactive, ref, isRef, toRefs, onMounted } from '@vue/composition-api';
-import { GetSms } from '@/api/login';
 
 export default {
     name: 'login',
-    setup(props, { refs, root }) {
+    setup(props, { refs }) {
         // 这里面放置data数据、生命周期、自定义的函数
 
         // 验证用户名
@@ -139,8 +138,6 @@ export default {
                 { validator: validateCode, trigger: 'blur' }
             ]
         })
-        // 登录按钮禁用状态
-        const loginButtonStatus = ref(true)
 
 
         /**
@@ -150,33 +147,7 @@ export default {
             menuTabIndex.value = index
             return type === 'login' ? model.value = 'login' : model.value = 'register'
         })
-        /**
-         * 获取验证码
-         */
-        const getSms = (() => {
-            // 验证邮箱、密码
-            if(ruleForm.username == '') {
-                root.$message.error('邮箱不能为空！！');
-                return false;
-            }
-            if(validateEmail(ruleForm.username)) {
-                root.$message.error('邮箱格式有误，请重新输入！！');
-                return false;
-            }
-            // 获取验证码
-            let requestData = {
-                username: ruleForm.username,
-                module: 'login'
-            }
-            GetSms(requestData).then((response) => {
-                console.log(response);
-            }).catch((error) => {
-                console.log(error);
-            });
-        })
-        /**
-         * 提交表单
-         */
+
         const submitForm = (formName => {
             refs[formName].validate((valid) => {
                 if (valid) {
@@ -193,6 +164,7 @@ export default {
          */
         // 挂载完成后
         onMounted(() => {
+
         })
 
         return {
@@ -201,10 +173,8 @@ export default {
             model,
             ruleForm,
             rules,
-            loginButtonStatus,
             fnToggleMenuTab,
-            submitForm,
-            getSms
+            submitForm
         }
 
     }
