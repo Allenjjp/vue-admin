@@ -66,7 +66,7 @@ module.exports = {
     // 跨域
     proxy: {
       '/devApi': {
-        target: 'http://www.web-jshtml.cn/productapi',
+        target: 'http://www.web-jshtml.cn/productapi/token',
         changeOrigin: true,
         pathRewrite: {
           '^/devApi': ''

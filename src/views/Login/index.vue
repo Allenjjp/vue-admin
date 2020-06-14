@@ -9,7 +9,7 @@
                 @click="fnToggleMenuTab(index, item.type)"
                 >{{ item.txt }}</li>
             </ul>
-            <el-form :model="ruleForm" status-icon :rules="rules" ref="ruleForm" size="medium" class="login-form">
+            <el-form :model="ruleForm" status-icon :rules="rules" ref="loginForm" size="medium" class="login-form">
                 <el-form-item prop="username" class="item-form">
                     <label for="username">邮箱</label>
                     <el-input id="username" type="text" v-model="ruleForm.username" autocomplete="off"></el-input>
@@ -29,13 +29,13 @@
                             <el-input id="code" v-model="ruleForm.code" minlength="6" maxlength="6"></el-input>
                         </el-col>
                         <el-col :span="9">
-                            <el-button type="success" class="block" @click="getSms()">获取验证码</el-button>
+                            <el-button type="success" class="block" @click="getSms()" :disabled="codeButtonStatus.status">{{ codeButtonStatus.text }}</el-button>
                         </el-col>
                     </el-row>
                     
                 </el-form-item>
                 <el-form-item>
-                    <el-button type="danger" @click="submitForm('ruleForm')" class="login-btn block" :disabled="loginButtonStatus">
+                    <el-button type="danger" @click="submitForm('loginForm')" class="login-btn block" :disabled="loginButtonStatus">
                         {{ model === 'login' ? '登录' : '注册' }}
                     </el-button>
                 </el-form-item>
@@ -47,7 +47,8 @@
 <script>
 import { stripscript, validateEmail, validatePass, validateVCode } from '@/utils/validate';
 import { reactive, ref, isRef, toRefs, onMounted } from '@vue/composition-api';
-import { GetSms } from '@/api/login';
+import { GetSms, Register, Login } from '@/api/login';
+import sha1 from 'js-sha1';
 
 export default {
     name: 'login',
@@ -119,8 +120,8 @@ export default {
         const model = ref('login')
         // 表单的数据
         const ruleForm = reactive({
-            username: '',
-            password: '',
+            username: '2584090148@qq.com',
+            password: 'abc123',
             passwords: '',
             code: ''
         })
@@ -141,14 +142,35 @@ export default {
         })
         // 登录按钮禁用状态
         const loginButtonStatus = ref(true)
-
+        // 验证码按钮禁用状态
+        const codeButtonStatus = reactive({
+            status: false,
+            text: '获取验证码'
+        })
+        // 倒计时
+        const timer = ref(null)
 
         /**
          * 声明函数
          */
         const fnToggleMenuTab = ((index, type) => {
-            menuTabIndex.value = index
-            return type === 'login' ? model.value = 'login' : model.value = 'register'
+            resetFormData();
+            menuTabIndex.value = index;
+            return type === 'login' ? model.value = 'login' : model.value = 'register';
+            clearCountDown();
+        })
+        /**
+         * 清除表单数据
+         */
+        const resetFormData = (() => {
+            refs.loginForm.resetFields(); // 重置表单数据
+        })
+        /**
+         * 更新按钮的状态
+         */
+        const updateButtonStatus = ((params) => {
+            codeButtonStatus.status = params.status;
+            codeButtonStatus.text = params.text;
         })
         /**
          * 获取验证码
@@ -166,21 +188,114 @@ export default {
             // 获取验证码
             let requestData = {
                 username: ruleForm.username,
-                module: 'login'
+                module: model.value
             }
+            // 修改获取验证码按钮状态
+            updateButtonStatus({
+                status: true,
+                text: '发送中...'
+            })
             GetSms(requestData).then((response) => {
                 console.log(response);
+                let data = response.data;
+                root.$message({
+                    message: data.message,
+                    type: 'success'
+                })
+                // 启用登录或注册按钮
+                loginButtonStatus.value = false;
+                // 调定时器，倒计时
+                countDown(60);
             }).catch((error) => {
                 console.log(error);
             });
+        })
+        /**
+         * 倒计时
+         */
+        const countDown = ((number) => {
+            // 判断定时器是否存在，存在则清除
+            if(timer.value) {
+                clearInterval(timer.value);
+            }
+            // setTimeout 只执行一次
+            // setInterval 不断的执行，需要条件才会停止
+            let time = number;
+            timer.value = setInterval(() => {
+                time--;
+                if(time === 0) {
+                    clearInterval(timer.value);
+                    updateButtonStatus({
+                        status: false,
+                        text: '再次获取'
+                    });
+                } else {
+                    codeButtonStatus.text = `倒计时${time}秒`;
+                }
+            }, 1000);
+        })
+        /**
+         * 登录
+         */
+        const login = (() => {
+            let requestData = {
+                username: ruleForm.username,
+                password: ruleForm.password,
+                code: ruleForm.code
+            }
+            // 登录接口
+            root.$store.dispatch('app/login', requestData).then(response => {
+                // 页面跳转
+                root.$router.push({
+                    name: 'Console'
+                })
+            }).catch(error => {});
+        })
+        /**
+         * 注册
+         */
+        const register = (() => {
+            let requestData = {
+                username: ruleForm.username,
+                password: ruleForm.password,
+                code: ruleForm.code,
+                module: 'register'
+            }
+            // 注册接口
+            Register(requestData).then(response => {
+                console.log(response);
+                let data = response.data;
+                root.$message({
+                    message: data.message,
+                    type: 'success'
+                })
+                // 模拟注册成功
+                fnToggleMenuTab(0, 'login');
+                clearCountDown();
+            }).catch(error => {
+                console.log(error);
+            })
+        })
+        /**
+         * 清除倒计时
+         */
+        const clearCountDown = (() => {
+            // 还原验证码按钮默认状态
+            updateButtonStatus({
+                status: false,
+                text: '获取验证码'
+            });
+            // 清除倒计时
+            clearInterval(timer.value);
         })
         /**
          * 提交表单
          */
         const submitForm = (formName => {
             refs[formName].validate((valid) => {
+                // 表单验证通过
                 if (valid) {
-                    alert('submit!');
+                    model.value === 'login' ? login() : register();
                 } else {
                     console.log('error submit!!');
                     return false;
@@ -202,9 +317,16 @@ export default {
             ruleForm,
             rules,
             loginButtonStatus,
+            codeButtonStatus,
+            timer,
             fnToggleMenuTab,
             submitForm,
-            getSms
+            getSms,
+            countDown,
+            clearCountDown,
+            login,
+            register,
+            resetFormData
         }
 
     }
